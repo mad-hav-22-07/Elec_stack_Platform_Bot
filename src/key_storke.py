@@ -6,8 +6,8 @@ import sys,termios,tty,select
 
 class key_board_node(Node):
     
-    def _init_(self):
-        super()._init_("keyboard_control")
+    def __init__(self):
+        super().__init__("keyboard_control")
         self.key_stroke = self.create_publisher(Float32MultiArray,"keystroke",10)
         self.settings = termios.tcgetattr(sys.stdin)
         self.timer = self.create_timer(0.1,self.key_loop)
@@ -65,7 +65,7 @@ class key_board_node(Node):
             
     def getkey(self):
         tty.setraw(sys.stdin.fileno())
-        rlist,, = select.select([sys.stdin],[],[],0.1)
+        rlist,_,_ = select.select([sys.stdin],[],[],0.1)
         key = sys.stdin.read(1) if rlist else None
         termios.tcsetattr(sys.stdin,termios.TCSADRAIN,self.settings)
         return key
@@ -81,5 +81,5 @@ def main(args=None):
     finally:
         rclpy.shutdown()
 
-if _name_ =="_main_":
-    main()
+if __name__ =="_main_":
+    main()  

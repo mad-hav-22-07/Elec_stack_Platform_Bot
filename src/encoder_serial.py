@@ -16,7 +16,7 @@ class encoder_serial_reading(Node):
         self.pulse = self.create_publisher(Float32MultiArray,"pulse",10) #Publisher 2
         self.ser = 0 
         self.open_serial() #tries to establish Serial connection 
-        self.timer = self.create_timer(0.01,self.callback) # Timer 
+        self.timer = self.create_timer(0.001,self.callback) # Timer 
         self.started = False #acts as a flag
         
     def callback(self):

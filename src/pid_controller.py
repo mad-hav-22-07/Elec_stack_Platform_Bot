@@ -12,6 +12,7 @@ class Compute_PID:
         self.ki = ki
         self.kd = kd
 
+        #Min and max throttle
         self.thrmin = thr_limit[0]
         self.thrmax = thr_limit[1]
 
@@ -19,9 +20,9 @@ class Compute_PID:
         self.error_prev = 0
         self.error_sum = 0
 
-        self.setpoint = 0
-        self.thr = 0
-
+        self.setpoint = 0 #Desired velocity
+        self.thr = 0      #Output throttle
+    # To reset the PID state variables when E-Stop is triggered
     def reset(self):
         self.error = 0
         self.error_prev = 0
@@ -29,7 +30,8 @@ class Compute_PID:
 
         self.setpoint = 0
         self.thr = 0
-
+    
+    #Just resets the accumulated error
     def soft_reset(self):
         self.error_prev = 0
         self.error_sum = 0
@@ -49,19 +51,24 @@ class Compute_PID:
         return self.output
     
 class PID_node(Node):
-    def __init__(self):
+    def __init__(self,PID_f_scale):
 
         super().__init__ ('pid_control')
 
-        self.r = 0.124
-        self.l = 1.12
+        self.r = 0.124 #Wheel radius
+        self.l = 1.12  #Distance between wheels
 
-        #Encoder readings
+        #Frequency scaling according to encoder serial frequency
+        self.counter = 1
+        self.counter_limit = PID_f_scale
+
+        # Encoder readings
         self.left_enc =0
         self.right_enc =0
 
+        # E-stop initialized to False
         self.estop = False
-
+        # Wheel PIDs initialized
         self.lpid = Compute_PID(thr_limit =[-300,300],kp = 1,ki=0,kd=0)
         self.rpid = Compute_PID(thr_limit =[-300,300],kp = 1,ki=0,kd=0)
 
@@ -83,12 +90,12 @@ class PID_node(Node):
         self.last_key_time = None
         self.timeout = 15.0
 
-         #Tim
+        #Timers
         self.timer = self.create_timer(0.1,self.control_loop)
         self.timer_2 = self.create_timer(0.1,self.check_key)
 
 
-
+    #Check if keystroke should be deactivated and switch back to software
     def check_key(self):
         if self.active =="keystroke" and  self.last_key_time is not None:
             if time.time() - self.last_key_time>self.timeout:
@@ -97,7 +104,7 @@ class PID_node(Node):
                 self.active = "software"
 
 
-
+    #E-Stop
     def estop_callback(self,msg = Int8):
         self.estop = bool(msg.data)
         if self.estop:
@@ -116,7 +123,7 @@ class PID_node(Node):
         if self.active == "software":
             v =msg.linear.x
             w = msg.angular.z
-
+            #Converting bot velocity to wheel velocity
             v_l = v - (w*self.l/2)
             v_r = v + (w*self.l/2)
 
@@ -124,8 +131,15 @@ class PID_node(Node):
             self.rpid.setpoint = v_r*30/(math.pi*self.r)
 
     def rpm_callback(self,msg: Float32MultiArray):
+        
         self.left_enc = msg.data[0]
         self.right_enc = msg.data[1]
+        
+        #Trigger PID compute only if counter limit is reached
+        self.counter += 1
+        if self.counter == self.counter_limit:
+            self.control_loop()
+            self.counter = 1
 
     def keystroke_callback(self,msg :Float32MultiArray):
             if self.active !="keystroke":
@@ -143,7 +157,7 @@ class PID_node(Node):
 
 
     def control_loop(self):
-
+        #Compute dt
         now = self.get_clock().now().nanoseconds/1e9
         dt = now - self.prev_time
         self.prev_time = now
@@ -157,7 +171,7 @@ class PID_node(Node):
             msg.data[0]= left_thr
             msg.data[1]= right_thr
             self.thr_pub.publish(msg)
-
+ 
 
             
 
@@ -176,7 +190,7 @@ class PID_node(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    node = PID_node()
+    node = PID_node(PID_f_scale=2)
     rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()

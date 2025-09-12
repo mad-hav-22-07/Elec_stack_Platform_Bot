@@ -40,7 +40,7 @@ class Compute_PID:
     def compute(self,enc,dt):
         self.error_prev = self.error
         self.error = self.setpoint - enc
-        self.error_sum+=self.error
+        self.error_sum+=self.error*dt
 
         deriv = (self.error - self.error_prev)/dt if dt>0 else 0.0
 
@@ -91,7 +91,7 @@ class PID_node(Node):
         self.timeout = 15.0
 
         #Timers
-        self.timer = self.create_timer(0.1,self.control_loop)
+        #self.timer = self.create_timer(0.1,self.control_loop)
         self.timer_2 = self.create_timer(0.1,self.check_key)
 
 
@@ -110,9 +110,8 @@ class PID_node(Node):
         if self.estop:
             self.lpid.reset()
             self.rpid.reset()
-            thr = Float32MultiArray
-            thr.data[0] =0
-            thr.data[1]= 0
+            thr = Float32MultiArray()
+            thr.data = [0.0, 0.0]
             self.thr_pub.publish(thr)
             self.get_logger().info("Estop has been engaged")
 
@@ -160,6 +159,8 @@ class PID_node(Node):
         #Compute dt
         now = self.get_clock().now().nanoseconds/1e9
         dt = now - self.prev_time
+        if dt<= 0:
+            return
         self.prev_time = now
 
         if not self.estop:
@@ -167,9 +168,8 @@ class PID_node(Node):
             left_thr = self.lpid.compute(self.left_enc,dt)
             right_thr =self.rpid.compute(self.right_enc,dt)
 
-            msg = Float32MultiArray
-            msg.data[0]= left_thr
-            msg.data[1]= right_thr
+            msg = Float32MultiArray()
+            msg.data = [left_thr, right_thr]
             self.thr_pub.publish(msg)
  
 

@@ -169,7 +169,10 @@ class PID_node(Node):
             right_thr =self.rpid.compute(self.right_enc,dt)
 
             msg = Float32MultiArray()
-            msg.data = [left_thr, right_thr]
+            msg.data = [float(left_thr), float(right_thr)]
+            # msg.data[0]= left_thr
+            # msg.data[1]= right_thr
+
             self.thr_pub.publish(msg)
  
 
@@ -201,5 +204,3 @@ if __name__ == '__main__':
 
 
          
-
-

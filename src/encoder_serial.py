@@ -10,6 +10,8 @@ class encoder_serial_reading(Node):
     def __init__(self,serPort): 
         
         super().__init__("encoder_serial")
+        self.get_logger().info("initing node")
+
         #initilaizing the variables which we will be using 
         self.serPort = serPort # Port Address
         self.rpm = self.create_publisher(Float32MultiArray,"rpm",10) # Publisher 1
@@ -36,7 +38,7 @@ class encoder_serial_reading(Node):
                     self.get_logger().info("The Connection has been established Properly",once = True)
                     self.prev_sequence = 0
                     self.ser.write(b"++\n") # For acknowledging Tiva (ack msg)
-
+                
                 elif(not self.started):
                     
                     if enc[0] == "$" and enc[-1] =="&":
@@ -44,15 +46,12 @@ class encoder_serial_reading(Node):
                         self.ser.write(b"--\n") # to start the Tiva code again (failure msg)
                         self.get_logger().info("Improper Handshake, restart Required")
                     
-                    self.get_logger().info("Connection is not Proper -> Waiting for Tiva",once = True)
-                    
-                if not enc: #This is for cases where we recieve an empty string -> This case we will have to restart the Tiva
-                    self.started = False
-                
+                    self.get_logger().info("Connection is not Proper -> Waiting for Tiva",once = True)                
                 
                 if enc[0] == "$" and enc[-1] == "&":
                     
                     enc = enc[1:-1].split() # This will split them into list ["pulse1","pulse2","rpm1","rpm2","sequence"]
+                    print(enc)
                     self.counter = int(enc[-1])
                     
                     if ((self.counter - self.prev_sequence+1000)%1000!=1): # 1000 is taken as that is the max_sequence from the Tiva code
@@ -62,29 +61,30 @@ class encoder_serial_reading(Node):
                     self.prev_sequence = self.counter     
                     
                     
-                if len(enc) != 5: 
-                    
-                    #if enc doesnt have all the required readings
-                    
-                    self.get_logger().warning("Error in reading the data",once = True )
-                    self.started = False
+                    if len(enc) != 5: 
+                        
+                        #if enc doesnt have all the required readings
+                        
+                        self.get_logger().warning("Error in reading the data",once = True )
+                        self.started = False
 
-        # Getting the values for the rpm and the pulse and then publishing them       
-                rpm = Float32MultiArray()
-                pulse = Float32MultiArray()
-                
-                try:
-                    
-                    rpm.data = [float(enc[2]),float(enc[3])]
-                    self.rpm.publish(rpm)
-                    pulse.data = [float(enc[0]),float(enc[1])]
-                    self.pulse.publish(pulse)
-                    self.get_logger().info(f"Successfully Published {rpm.data}  {pulse.data}")   
-                    
-                except:
-                    
-                    self.get_logger().warning("Value Error",once = True)
-                    self.started = False
+                    else:
+                        # Getting the values for the rpm and the pulse and then publishing them       
+                        rpm = Float32MultiArray()
+                        pulse = Float32MultiArray()
+                        
+                        try:
+                            
+                            rpm.data = [float(enc[2]),float(enc[3])]
+                            self.rpm.publish(rpm)
+                            pulse.data = [float(enc[0]),float(enc[1])]
+                            self.pulse.publish(pulse)
+                            self.get_logger().info(f"Successfully Published {rpm.data}  {pulse.data}")   
+                            
+                        except:
+                            
+                            self.get_logger().warning("Value Error",once = True)
+                            self.started = False
 
             except:
                 
@@ -138,7 +138,7 @@ def main(args = None):
     # try block to make sure that the node is properly initialized and 
     # if any error -> The cause is printed out.
     try:
-        node = encoder_serial_reading("/dev/ttyACM0")
+        node = encoder_serial_reading("/dev/serial/by-id/usb-Teensyduino_USB_Serial_16399710-if00")
         if node is not None:
             rclpy.spin(node)
             

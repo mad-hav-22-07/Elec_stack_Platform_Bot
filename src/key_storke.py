@@ -11,15 +11,13 @@ class key_board_node(Node):
         self.key_stroke = self.create_publisher(Float32MultiArray,"keystroke",10)
         self.settings = termios.tcgetattr(sys.stdin)
         self.timer = self.create_timer(0.1,self.key_loop)
-        self.forward_count = 1
-        self.reverse_count = 1
         self.left_velocity = 0
         self.right_velocity = 0
         
     
     def key_loop(self):
         msg = Float32MultiArray()
-        msg.data = [0.0, 0.0]
+        msg.data = [0,0]
 
         key = self.getkey()
 
@@ -27,22 +25,41 @@ class key_board_node(Node):
         if key is None:
             return  # no key pressed 
 
-        if key == "a":
+        if key == "w":
             msg.data = [self.left_velocity + 10.0 , self.right_velocity + 10.0]
-        elif key == "r":
-            msg.data = [10.0, 0.0]
-        elif key == "d":
-            msg.data = [self.left_velocity - 10.0 , self.right_velocity - 10.0]
-        elif key == "l":
-            msg.data = [0.0, 10.0]
-        elif key == "m":
-            msg.data = [10.0,-10.0]
-        elif key == "n":
-            msg.data = [-10.0,10.0]
+
+
         elif key == "s":
-            msg.data = [0.0,0.0]
+            msg.data = [self.left_velocity - 10.0 , self.right_velocity - 10.0]
+        
+        
+        elif key == "a":
+            msg.data = [self.left_velocity, self.right_velocity + 10.0]
+
+        
+        elif key == "d":
+            msg.data = [self.left_velocity + 10.0, self.right_velocity]
+
+
         elif key == "b":
-            msg.data = [-10.0,-10.0]
+            msg.data = [self.left_velocity - 10.0 ,self.right_velocity]
+
+
+        elif key == "m":
+            msg.data = [self.left_velocity , self.right_velocity - 10.0 ]
+
+
+        elif key == "z":
+            msg.data = [0.0,0.0]
+
+
+        elif key == "j":
+            msg.data = [self.left_velocity - 10.0 , self.right_velocity + 10.0]
+
+
+        elif key == "n":
+            msg.data = [self.left_velocity+ 10.0 , self.right_velocity - 10.0]
+
         elif key == "q":
             self.get_logger().info("Quit key pressed. Shutting down...")
             rclpy.shutdown()
@@ -52,12 +69,10 @@ class key_board_node(Node):
             self.get_logger().info(f"Unknown key pressed: {key}")
             return
         
-        if(key == "a" or key == "d"):
-            self.left_velocity = msg.data[0]
-            self.right_velocity = msg.data[1]
-        else:
-            self.left_velocity = 0
-            self.right_velocity = 0
+        
+        self.left_velocity = msg.data[0]
+        self.right_velocity = msg.data[1]
+
         
         self.key_stroke.publish(msg)
         # only publish if valid key
@@ -81,5 +96,5 @@ def main(args=None):
     finally:
         rclpy.shutdown()
 
-if __name__ =="_main_":
-    main()  
+if __name__ =="main":
+    main()

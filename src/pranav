@@ -40,7 +40,7 @@ class Compute_PID:
     def compute(self,enc,dt):
         self.error_prev = self.error
         self.error = self.setpoint - enc
-        self.error_sum+=self.error*dt
+        self.error_sum+=self.error
 
         deriv = (self.error - self.error_prev)/dt if dt>0 else 0.0
 
@@ -69,8 +69,8 @@ class PID_node(Node):
         # E-stop initialized to False
         self.estop = False
         # Wheel PIDs initialized
-        self.lpid = Compute_PID(thr_limit =[-300,300],kp = 1,ki=0,kd=0)
-        self.rpid = Compute_PID(thr_limit =[-300,300],kp = 1,ki=0,kd=0)
+        self.lpid = Compute_PID(thr_limit =[-700,700],kp = 0.65,ki=0.05,kd=0.007)  # 1.3, 0.02, 0.003
+        self.rpid = Compute_PID(thr_limit =[-700,700],kp = 1.5,ki=0.025,kd=0.00625)
 
         self.prev_time = self.get_clock().now().nanoseconds/1e9
 
@@ -91,7 +91,7 @@ class PID_node(Node):
         self.timeout = 15.0
 
         #Timers
-        #self.timer = self.create_timer(0.1,self.control_loop)
+        self.timer = self.create_timer(0.1,self.control_loop)
         self.timer_2 = self.create_timer(0.1,self.check_key)
 
 
@@ -110,8 +110,9 @@ class PID_node(Node):
         if self.estop:
             self.lpid.reset()
             self.rpid.reset()
-            thr = Float32MultiArray()
-            thr.data = [0.0, 0.0]
+            thr = Float32MultiArray
+            thr.data[0] =0
+            thr.data[1]= 0
             self.thr_pub.publish(thr)
             self.get_logger().info("Estop has been engaged")
 
@@ -159,8 +160,6 @@ class PID_node(Node):
         #Compute dt
         now = self.get_clock().now().nanoseconds/1e9
         dt = now - self.prev_time
-        if dt<= 0:
-            return
         self.prev_time = now
 
         if not self.estop:
@@ -169,10 +168,10 @@ class PID_node(Node):
             right_thr =self.rpid.compute(self.right_enc,dt)
 
             msg = Float32MultiArray()
+
             msg.data = [float(left_thr), float(right_thr)]
             # msg.data[0]= left_thr
             # msg.data[1]= right_thr
-
             self.thr_pub.publish(msg)
  
 

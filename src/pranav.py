@@ -19,6 +19,7 @@ class Compute_PID:
         self.error = 0
         self.error_prev = 0
         self.error_sum = 0
+        #self.deriv_prev=0.0
 
         self.setpoint = 0 #Desired velocity
         self.thr = 0      #Output throttle
@@ -27,6 +28,7 @@ class Compute_PID:
         self.error = 0
         self.error_prev = 0
         self.error_sum = 0
+        #self.deriv_prev=0.0
 
         self.setpoint = 0
         self.thr = 0
@@ -35,6 +37,7 @@ class Compute_PID:
     def soft_reset(self):
         self.error_prev = 0
         self.error_sum = 0
+        #self.deriv_prev=0.0
 
 
     def compute(self,enc,dt):
@@ -42,7 +45,12 @@ class Compute_PID:
         self.error = self.setpoint - enc
         self.error_sum+=self.error
 
+        # max_error_sum = 200
+        # self.error_sum = max(-max_error_sum,min(self.error_sum,max_error_sum))
+
         deriv = (self.error - self.error_prev)/dt if dt>0 else 0.0
+        #deriv = 0.7*self.deriv_prev + 0.3*rawderiv
+        #self.deriv_prev = deriv
 
         self.output = self.kp*self.error + self.ki*self.error_sum + self.kd*deriv
 
@@ -69,8 +77,9 @@ class PID_node(Node):
         # E-stop initialized to False
         self.estop = False
         # Wheel PIDs initialized
-        self.lpid = Compute_PID(thr_limit =[-700,700],kp = 0.65,ki=0.05,kd=0.007)  # 1.3, 0.02, 0.003
-        self.rpid = Compute_PID(thr_limit =[-700,700],kp = 1.5,ki=0.025,kd=0.00625)
+        self.lpid = Compute_PID(thr_limit =[-700,700],kp = 0.9,ki=0.05,kd=0.007)  # 1.3, 0.02, 0.003
+        #0.65, 0.05, 0.007 has crazy delay, but reaches setpont perfectly
+        self.rpid = Compute_PID(thr_limit =[-700,700],kp = 0.9,ki=0.05,kd=0.007)
 
         self.prev_time = self.get_clock().now().nanoseconds/1e9
 
@@ -83,6 +92,7 @@ class PID_node(Node):
         #Pubs
         self.thr_pub = self.create_publisher(Float32MultiArray,'/thr',10)
         self.mon_pub = self.create_publisher(Float32MultiArray,'/monitor',10)
+        self.estop_pub = self.create_publisher(Int8, 'e_stop', 10)
 
        
 
@@ -110,13 +120,25 @@ class PID_node(Node):
         if self.estop:
             self.lpid.reset()
             self.rpid.reset()
-            thr = Float32MultiArray
-            thr.data[0] =0
-            thr.data[1]= 0
+            thr = Float32MultiArray()
+            thr.data = [float(0),float(0)]
             self.thr_pub.publish(thr)
+
+            estop_msg = Int8()
+            estop_msg.data = 1
+            self.estop_pub.publish(estop_msg)
+            
             self.get_logger().info("Estop has been engaged")
+        
+        elif not self.estop:
+            self.lpid.reset()
+            self.rpid.reset()
 
+            estop_msg = Int8()
+            estop_msg.data = 0
+            self.estop_pub.publish(estop_msg)
 
+            self.get_logger().info("Estop has been disengaged")
 
        
     def cmd_callback(self,msg: Twist):
@@ -136,10 +158,10 @@ class PID_node(Node):
         self.right_enc = msg.data[1]
         
         #Trigger PID compute only if counter limit is reached
-        self.counter += 1
-        if self.counter == self.counter_limit:
-            self.control_loop()
-            self.counter = 1
+        # self.counter += 1
+        # if self.counter == self.counter_limit:
+        #     self.control_loop()
+        #     self.counter = 1
 
     def keystroke_callback(self,msg :Float32MultiArray):
             if self.active !="keystroke":

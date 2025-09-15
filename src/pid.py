@@ -22,7 +22,8 @@ class Pid(Node):
         self.subs2 = self.create_subscription(Float32MultiArray,'rpm',self.rpm_callback,10)
         self.subs3 = self.create_subscription(Float32MultiArray,'keystroke',self.keystroke_callback,10)
         self.subs4 = self.create_subscription(Bool,'estop',self.estop_callback,10)
-        self.publisher = self.create_publisher(Float32MultiArray, 'Thr', 10)
+        self.pub1 = self.create_publisher(Float32MultiArray, 'Thr', 10)
+        self.pub2 = self.create_publisher(Float32MultiArray, '/monitor', 10)
 
          # PID for setpoint (Velocity PID)
         self.pid_velL = output(output_min=-10000, output_max=10000, kp=1.0, ki=0.0, kd=0.0)
@@ -54,7 +55,7 @@ class Pid(Node):
 
         thr_msg = Float32MultiArray()
         thr_msg.data = self.thr
-        self.publisher.publish(thr_msg)
+        self.pub1.publish(thr_msg)
         
     def cmd_callback(self, msg):
         vl=(msg.data[0]-self.separation_distance/2*msg.data[1])*60 / (2 * math.pi * self.radius)  # required rpm for left   msg.data[0]--linear velocity   msg.data[1]--angular velocity
@@ -93,12 +94,22 @@ class Pid(Node):
             if not self.estop: 
                 self.pidL.update(self.rpm[0])
                 self.pidR.update(self.rpm[1])
-                self.thr[0] = self.pidL.output()
-                self.thr[1] = self.pidR.output()
+                self.thr[0] = self.pidL.get_output()
+                self.thr[1] = self.pidR.get_output()
                 thr_msg = Float32MultiArray()
                 thr_msg.data = self.thr
-                self.publisher.publish(thr_msg)
+                self.pub1.publish(thr_msg)
                 self.get_logger().info(f'Published: {self.thr}')
+                monitor_msg = Float32MultiArray()
+                monitor_msg.data = [
+                    self.pid_velL.setpoint,   # left wheel setpoint (rpm)
+                    self.pid_velR.setpoint,   # right wheel setpoint (rpm)
+                    self.rpm[0],               # left encoder feedback
+                    self.rpm[1],               # right encoder feedback
+                    self.thr[0],               # left throttle output
+                    self.thr[1]                # right throttle output
+                    ]
+                self.pub2.publish(monitor_msg)
             
 
 
@@ -114,31 +125,31 @@ class output:
         self.output_max = output_max
 
         # Internal state
-        self._setpoint = 0.0
+        self.setpoint = 0.0
         self._prev_error = 0.0
         self._integral = 0.0
-        self._output = 0.0
+        self.output = 0.0
 
     def reset(self):
         self._prev_error = 0.0
         self._integral = 0.0
 
     def set_setpoint(self, value):
-        self._setpoint = value
+        self.setpoint = value
 
     def update(self, measurement):
-        error = self._setpoint - measurement
+        error = self.setpoint - measurement
         self._integral += error # if dt constant can be ignored
         derivative = (error - self._prev_error) 
 
         # PID formula
-        self._output = self.kp * error + self.ki * self._integral + self.kd * derivative
+        self.output = self.kp * error + self.ki * self._integral + self.kd * derivative
 
         # Appling limits 
-        if self._output > self.output_max:
-            self._output = self.output_max
-        if self._output < self.output_min:
-            self._output = self.output_min
+        if self.output > self.output_max:
+            self.output = self.output_max
+        if self.output < self.output_min:
+            self.output = self.output_min
 
         if self.ki != 0:
             max_integral = self.output_max / self.ki
@@ -147,9 +158,9 @@ class output:
 
         # Save state
         self._prev_error = error
-        return self._output
-    def output(self):
-        return self._output
+        return self.output
+    def get_output(self):
+        return self.output
     
 
 

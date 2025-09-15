@@ -320,9 +320,9 @@ class PID_node(Node):
 
             self.rpid.setpoint= r_vel_cmd
 
-            left_thr = self.lpid.compute(l_vel_cmd,dt)
+            left_thr = self.lpid.compute(self.left_enc,dt)
 
-            right_thr =self.rpid.compute(r_vel_cmd,dt)
+            right_thr =self.rpid.compute(self.right_enc,dt)
 
             msg = Float32MultiArray()
 

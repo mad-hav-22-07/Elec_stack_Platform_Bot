@@ -62,10 +62,10 @@ class Pid(Node):
         vr=(msg.data[0]+self.separation_distance/2*msg.data[1])*60 / (2 * math.pi * self.radius)  # for right
         self.pid_velL.set_setpoint(vl)
         self.pid_velR.set_setpoint(vr)
-        self.pid_velL.update(self.pid_velL.output())  
-        self.pid_velR.update(self.pid_velR.output())  
-        self.pidL.set_setpoint(self.pid_velL.output())
-        self.pidR.set_setpoint(self.pid_velR.output())
+        self.pid_velL.update(self.pid_velL.get_output())  
+        self.pid_velR.update(self.pid_velR.get_output())  
+        self.pidL.set_setpoint(self.pid_velL.get_output())
+        self.pidR.set_setpoint(self.pid_velR.get_output())
 
     def keystroke_callback(self,msg):
         if self.active != "keystroke":
@@ -80,10 +80,10 @@ class Pid(Node):
         vr = msg.data[1]
         self.pid_velL.set_setpoint(vl)
         self.pid_velR.set_setpoint(vr)
-        self.pid_velL.update(self.pid_velL.output())  
-        self.pid_velR.update(self.pid_velR.output())  
-        self.pidL.set_setpoint(self.pid_velL.output())
-        self.pidR.set_setpoint(self.pid_velR.output())
+        self.pid_velL.update(self.pid_velL.get_output())  
+        self.pid_velR.update(self.pid_velR.get_output())  
+        self.pidL.set_setpoint(self.pid_velL.get_output())
+        self.pidR.set_setpoint(self.pid_velR.get_output())
         
     def rpm_callback(self, msg):
         if self.estop:
@@ -172,4 +172,5 @@ def main(args=None):
     rclpy.shutdown()
 
 if __name__== '__main__':
+
     main()

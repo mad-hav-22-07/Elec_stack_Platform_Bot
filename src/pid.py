@@ -30,8 +30,8 @@ class Pid(Node):
         self.pid_velR = output(output_min=-10000, output_max=10000, kp=1.0, ki=0.001, kd=0.0)
 
         # PID for throttle (Wheel PID)
-        self.pidL = output(output_min=-300, output_max=300, kp=1.0, ki=0.0, kd=0.0)
-        self.pidR = output(output_min=-300, output_max=300, kp=1.0, ki=0.0, kd=0.0)
+        self.pidL = output(output_min=-300, output_max=300, kp=1.0, ki=0.01, kd=0.0)
+        self.pidR = output(output_min=-300, output_max=300, kp=1.0, ki=0.01, kd=0.0)
 
         self.timer_1 = self.create_timer(0.1,self.control_loop)  # 0.1 seconds
         self.timer_2 = self.create_timer(0.1,self.check)
@@ -174,5 +174,6 @@ def main(args=None):
 if __name__== '__main__':
 
     main()
+
 
 

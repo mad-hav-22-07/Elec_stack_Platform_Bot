@@ -121,15 +121,15 @@ class PID_node(Node):
 
         # Wheel PIDs initialized
 
-        self.l_outer = Compute_PID(thr_limit=[-300, 300], kp=1.5, ki=0.05, kd=0.01)
+        self.l_outer = Compute_PID(thr_limit=[-10000, 10000], kp=0.25, ki=0.05, kd=0.0)
 
-        self.r_outer = Compute_PID(thr_limit=[-300, 300], kp=1.5, ki=0.05, kd=0.01)
+        self.r_outer = Compute_PID(thr_limit=[-10000, 10000], kp=0.25, ki=0.12, kd=0.0)
 
-        self.lpid = Compute_PID(thr_limit =[-700,700],kp = 3,ki=0.1,kd=0.02)  # 1.3, 0.02, 0.003
+        self.lpid = Compute_PID(thr_limit =[-700,700],kp = 5,ki=0.15,kd=0.0)  # 1.3, 0.02, 0.003
 
         #0.65, 0.05, 0.007 has crazy delay, but reaches setpoint perfectly
 
-        self.rpid = Compute_PID(thr_limit =[-700,700],kp = 3,ki=0.1,kd=0.02)
+        self.rpid = Compute_PID(thr_limit =[-700,700],kp = 5,ki=0.15,kd=0.0)
 
         self.prev_time = self.get_clock().now().nanoseconds/1e9
 

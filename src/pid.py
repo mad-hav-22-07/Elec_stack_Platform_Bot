@@ -9,8 +9,8 @@ class Pid(Node):
         super().__init__('pid')
         
         self.estop = False
-        self.radius = 0.5
-        self.separation_distance = 2.0  # distance between wheels
+        self.radius = 0.1016
+        self.separation_distance = 1.12  # distance between wheels
         self.timeout = 15.0   # seconds
         
         self.active ="software"
@@ -22,7 +22,7 @@ class Pid(Node):
         self.subs2 = self.create_subscription(Float32MultiArray,'rpm',self.rpm_callback,10)
         self.subs3 = self.create_subscription(Float32MultiArray,'keystroke',self.keystroke_callback,10)
         self.subs4 = self.create_subscription(Bool,'estop',self.estop_callback,10)
-        self.pub1 = self.create_publisher(Float32MultiArray, 'Thr', 10)
+        self.pub1 = self.create_publisher(Float32MultiArray, 'thr', 10)
         self.pub2 = self.create_publisher(Float32MultiArray, '/monitor', 10)
 
          # PID for setpoint (Velocity PID)
@@ -174,3 +174,4 @@ def main(args=None):
 if __name__== '__main__':
 
     main()
+

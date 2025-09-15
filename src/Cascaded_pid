@@ -342,11 +342,11 @@ class PID_node(Node):
 
     
 
-            value.data = [self.lpid.setpoint,self.rpid.setpoint,
+            value.data = [self.l_outer.setpoint,self.r_outer.setpoint,
 
                           self.left_enc,self.right_enc,
 
-                          left_thr,right_thr
+                          l_vel_cmd,r_vel_cmd
 
                           ]
 

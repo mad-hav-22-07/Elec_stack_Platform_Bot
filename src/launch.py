@@ -1,32 +1,35 @@
 from launch import LaunchDescription
-from ros_launch.actions import Node
+from launch_ros.actions import Node
 
 def generate_launch_description():
 
-    return LaunchDerscription([
+    return LaunchDescription([
 
     Node(
-        package = 'elecstack',
-        executable = 'pid'
+        package = 'driver',
+        executable = 'motor_driver',
+
     ),
 
     Node(
-        package = 'elecstack',
-        executable = 'keystroke'
+        package = 'driver',
+        executable = 'plot_monitor',
+
     ),
 
 
     Node(
-        package = 'elecstack',
-        executable = 'encoder'
+        package = 'driver',
+        executable = 'encoder_serial',
+
     ),
 
 
 
     Node(
-        package = 'elecstack',
-        executable = 'driver'
+        package = 'driver',
+        executable = 'pid_node',
+
     ),
 
     ])
-

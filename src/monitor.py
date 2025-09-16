@@ -38,13 +38,13 @@ class myNode(Node):
 
         self.axes[0].set_title("Left Encoder")
         self.axes[0].grid(True)
-        self.axes[0].set_ylim(-100,100)
+        self.axes[0].set_ylim(-200,200)
         self.axes[0].legend() 
 
 
         self.axes[1].set_title("Right Encoder")
         self.axes[1].grid(True)
-        self.axes[1].set_ylim(-100,100)
+        self.axes[1].set_ylim(-200,200)
         self.axes[1].legend()
 
 

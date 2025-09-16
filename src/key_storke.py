@@ -2,6 +2,7 @@
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Float32MultiArray
+from std_msgs.msg import Int8
 import sys,termios,tty,select
 
 class key_board_node(Node):
@@ -13,6 +14,8 @@ class key_board_node(Node):
         self.timer = self.create_timer(0.1,self.key_loop)
         self.left_velocity = 0
         self.right_velocity = 0
+        #self.prev_key = "z"
+        self.e_stop_pub = self.create_publisher(Int8, 'estop', 10)
         
     
     def key_loop(self):
@@ -20,25 +23,32 @@ class key_board_node(Node):
         msg.data = [0,0]
 
         key = self.getkey()
+    
 
  
         if key is None:
             return  # no key pressed 
 
         if key == "w":
+
             msg.data = [self.left_velocity + 10.0 , self.right_velocity + 10.0]
+            
 
 
         elif key == "s":
+
             msg.data = [self.left_velocity - 10.0 , self.right_velocity - 10.0]
+            
         
         
         elif key == "a":
-            msg.data = [self.left_velocity, self.right_velocity + 10.0]
+            msg.data = [0, 10.0]
+            
 
         
         elif key == "d":
-            msg.data = [self.left_velocity + 10.0, self.right_velocity]
+            msg.data = [10.0, 0]
+            
 
 
         elif key == "b":
@@ -60,6 +70,18 @@ class key_board_node(Node):
         elif key == "n":
             msg.data = [self.left_velocity+ 10.0 , self.right_velocity - 10.0]
 
+        elif key == "e":
+            e_stop_msg = Int8()
+            e_stop_msg.data = 1
+            #msg.data = [0.0 , 0.0]
+            self.e_stop_pub.publish(e_stop_msg)
+
+
+        elif key == "r":
+            e_stop_msg = Int8()
+            e_stop_msg.data = 0
+            self.e_stop_pub.publish(e_stop_msg)
+
         elif key == "q":
             self.get_logger().info("Quit key pressed. Shutting down...")
             rclpy.shutdown()
@@ -70,10 +92,17 @@ class key_board_node(Node):
             return
         
         
-        self.left_velocity = msg.data[0]
-        self.right_velocity = msg.data[1]
 
-        
+        if (key == 'a' or key == 'd'):
+            self.left_velocity = 0
+            self.right_velocity = 0
+
+        else:
+            
+            self.left_velocity = msg.data[0]
+            self.right_velocity = msg.data[1]
+
+       # self.prev_key = key
         self.key_stroke.publish(msg)
         # only publish if valid key
         self.get_logger().info(f"Sent {msg.data}")

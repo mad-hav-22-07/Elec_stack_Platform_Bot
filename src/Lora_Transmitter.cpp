@@ -1,16 +1,16 @@
 #define RX PD_6
-#define TX PD_7
+#define TX PD_7   
 #define M1 PA_5
 #define M0 PA_6
-#define pushButton PF_2
-
+bool bot_state = true;
+bool lastButtonState = LOW;  
+bool currentButtonState= LOW;
 
 void setup() {
-  Serial.begin(9600);        // USB debug
-  Serial2.begin(9600);       // PD6/PD7 -> LoRa
+  Serial.begin(9600);
+  Serial2.begin(9600);          
   Serial.println("TIVA Initialized");
-
-  pinMode(pushButton, INPUT);
+  pinMode(PF_2,INPUT);
   pinMode(M0, OUTPUT);
   pinMode(M1, OUTPUT);
 
@@ -19,14 +19,22 @@ void setup() {
 }
 
 void loop() {
-  bool button_state = digitalRead(pushButton);
+  currentButtonState = digitalRead(PF_2);
 
-  // detect rising edge: button goes from LOW -> HIGH
-  if (button_state == HIGH) {
-    Serial2.write('1');
-    Serial.println("Stop Command sent");
-    delay(5000);
+  if (lastButtonState == LOW && currentButtonState == HIGH) {
+    if (bot_state) {
+      Serial2.print('1');
+      Serial.println("Bot Stop data sent");
+      bot_state = false;
+      
+    } else {
+      Serial2.print('1');
+      Serial.println("Bot On data sent");
+      bot_state = true;
+    }
+    
   }
-
-   
+  delay(100);
+  lastButtonState = currentButtonState; 
+  
 }

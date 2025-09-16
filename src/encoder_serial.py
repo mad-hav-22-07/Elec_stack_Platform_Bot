@@ -18,7 +18,7 @@ class encoder_serial_reading(Node):
         self.pulse = self.create_publisher(Float32MultiArray,"pulse",10) #Publisher 2
         self.ser = 0 
         self.open_serial() #tries to establish Serial connection 
-        self.timer = self.create_timer(0.001,self.callback) # Timer 
+        self.timer = self.create_timer(0.01,self.callback) # Timer 
         self.started = False #acts as a flag
         
     def callback(self):
@@ -138,7 +138,7 @@ def main(args = None):
     # try block to make sure that the node is properly initialized and 
     # if any error -> The cause is printed out.
     try:
-        node = encoder_serial_reading("/dev/serial/by-id/usb-Teensyduino_USB_Serial_16399710-if00")
+        node = encoder_serial_reading("/dev/serial/by-id/usb-Teensyduino_USB_Serial_15612700-if00")
         if node is not None:
             rclpy.spin(node)
             

@@ -6,6 +6,7 @@ from rclpy.node import Node
 import serial
 from std_msgs.msg import Float32MultiArray
 from std_msgs.msg import Int8
+import time
 
 
 class motor_driver(Node):
@@ -120,25 +121,27 @@ class motor_driver(Node):
         )
 
         # we implement e-stop if there are more than 5 acknowledgemnt or echo errors
-        self.publisher = self.create_publisher(Int8, 'e_stop', 10)
+        # self.publisher = self.create_publisher(Int8, 'e_stop', 10)
 
-        self.timer = self.create_timer(0.2, self.timer_callback)
+        # self.timer = self.create_timer(0.2, self.timer_callback)
 
 
     def mcSerialRead(self, ser):
-        x = ''
-        line = ''
-
-        # this is the command to read bytewise data and stop when it is \r
-        while x != b'\r':
-
-            # the bytes are read as b'<char>'
-            line += str(x)[2:-1]
-            x = ser.read()
-        
-        self.get_logger().info("Read " + str(line) + " from serial" + str(ser))
-
+        line = ser.readline().decode().strip()
         return line
+        # x = ''
+        # line = ''
+
+        # # this is the command to read bytewise data and stop when it is \r
+        # while x != b'\r':
+
+        #     # the bytes are read as b'<char>'
+        #     line += str(x)[2:-1]
+        #     x = ser.read()
+        
+        # #self.get_logger().info("Read " + str(line) + " from serial" + str(ser))
+
+        # return line
 
 
     # to set the drivers at open loop mode 0
@@ -172,9 +175,13 @@ class motor_driver(Node):
 
 
     def thr_callback(self, msg: Float32MultiArray):
-        self.get_logger().info("Reading from topic Thr")
+        self.get_logger().info("Reading from topic Thr"+str(msg.data[0])+str(msg.data[1]))
         self.current_vel_1 = msg.data[0]
         self.current_vel_2 = msg.data[1]
+        self.send_setpoint(self.current_vel_1, self.ser_1) 
+        self.send_setpoint(self.current_vel_2, self.ser_2)
+
+        #self.get_logger().info("Sent setpoint " + str(self.current_vel_1) + " to " + str(self.ser_1))
         #self.send_setpoint(msg.data[0], self.ser_1)
         #self.send_setpoint(msg.data[1], self.ser_2)
 
@@ -185,27 +192,31 @@ class motor_driver(Node):
         x = f'!G 1 {str(setpoint)}\r'
         ser.write(x.encode('utf-8'))
 
+        #self.get_logger().info("Sending setpoint " + str(setpoint) + " to " + str(ser))
+
         if (self.mcSerialRead(ser) != x[:-1]):
             self.get_logger().warn("EchoErr in sending setpoint in " + str(ser))
             self.echo_error_count += 1
         
         if (self.mcSerialRead(ser) != "+"):
-            self.get_logger().warn("AckErr in etting setpoint in " + str(ser))
+            self.get_logger().warn("AckErr in sending setpoint in " + str(ser))
             self.ack_error_count += 1
+        
+
 
     
     # keeps sending the velocity setpoint to the wheel non-stop
-    def timer_callback(self):
-        self.get_logger().info("Setpoint sent 1 : " + str(self.current_vel_1))
-        self.get_logger().info("Setpoint sent 2 : " + str(self.current_vel_2))
-        self.send_setpoint(self.current_vel_1, self.ser_1)
-        self.send_setpoint(self.current_vel_2, self.ser_2)
+    # def timer_callback(self):
+    #     self.get_logger().info("Setpoint sent 1 : " + str(self.current_vel_1))
+    #     self.get_logger().info("Setpoint sent 2 : " + str(self.current_vel_2))
+    #     self.send_setpoint(self.current_vel_1, self.ser_1)
+    #     self.send_setpoint(self.current_vel_2, self.ser_2)
 
         # implementing e-stop if ack or echo errors exceed limit
-        if (self.ack_error_count > self.ack_error_limit) or (self.echo_error_count > self.echo_error_limit):
-            msg = Int8
-            msg.data = 1
-            self.publisher.publish(msg)
+        # if (self.ack_error_count > self.ack_error_limit) or (self.echo_error_count > self.echo_error_limit):
+        #     msg = Int8
+        #     msg.data = 1
+        #     self.publisher.publish(msg)
 
     # implementing e-stop
     def e_stop_callback(self, msg: Int8):
@@ -225,12 +236,15 @@ class motor_driver(Node):
             self.ser_2.write(x.encode('utf-8'))
 
 def main(args=None):
-    rclpy.init(args=args)
-    node = motor_driver(serial_port_1 = '/dev/ttyACM1', serial_port_2 = '/dev/ttyACM0')        # The serial port goes here
-    rclpy.spin(node)
+    while True:
+        rclpy.init(args=args)
+        node = motor_driver(serial_port_1 = '/dev/left_controller', serial_port_2 = '/dev/right_controller')        # The serial port goes here
+        rclpy.spin(node)
 
-    node.destroy_node()
-    rclpy.shutdown()
+        node.destroy_node()
+        rclpy.shutdown()
+
+        time.sleep(2)
 
 
 if __name__ == '__main__':

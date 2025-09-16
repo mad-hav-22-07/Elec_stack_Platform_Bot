@@ -19,6 +19,7 @@ class Compute_PID:
         self.error = 0
         self.error_prev = 0
         self.error_sum = 0
+        #self.deriv_prev=0.0
 
         self.setpoint = 0 #Desired velocity
         self.thr = 0      #Output throttle
@@ -27,6 +28,7 @@ class Compute_PID:
         self.error = 0
         self.error_prev = 0
         self.error_sum = 0
+        #self.deriv_prev=0.0
 
         self.setpoint = 0
         self.thr = 0
@@ -35,16 +37,22 @@ class Compute_PID:
     def soft_reset(self):
         self.error_prev = 0
         self.error_sum = 0
+        #self.deriv_prev=0.0
 
 
     def compute(self,enc,dt):
         self.error_prev = self.error
         self.error = self.setpoint - enc
-        self.error_sum+=self.error*dt
+        self.error_sum+=self.error
 
-        deriv = (self.error - self.error_prev)/dt if dt>0 else 0.0
+        # max_error_sum = 200
+        # self.error_sum = max(-max_error_sum,min(self.error_sum,max_error_sum))
 
-        self.output = self.kp*self.error + self.ki*self.error_sum + self.kd*deriv
+        # deriv = (self.error - self.error_prev)/dt if dt>0 else 0.0
+        #deriv = 0.7*self.deriv_prev + 0.3*rawderiv
+        #self.deriv_prev = deriv
+
+        self.output = self.kp*self.error + self.ki*self.error_sum
 
         self.output = max(self.thrmin,min(self.output,self.thrmax))
 
@@ -69,8 +77,11 @@ class PID_node(Node):
         # E-stop initialized to False
         self.estop = False
         # Wheel PIDs initialized
-        self.lpid = Compute_PID(thr_limit =[-300,300],kp = 1,ki=0,kd=0)
-        self.rpid = Compute_PID(thr_limit =[-300,300],kp = 1,ki=0,kd=0)
+        self.lpid = Compute_PID(thr_limit =[-500,500],kp = 2,ki=0.03,kd=0.028)  # 1.3, 0.02, 0.003
+        #0.65, 0.05, 0.007 has crazy delay, but reaches setpont perfectly
+        # 2.5 0.12 0.0
+        # 2 0.013 0.0
+        self.rpid = Compute_PID(thr_limit =[-500,500],kp = 2,ki=0.03,kd=0.028)
 
         self.prev_time = self.get_clock().now().nanoseconds/1e9
 
@@ -83,6 +94,7 @@ class PID_node(Node):
         #Pubs
         self.thr_pub = self.create_publisher(Float32MultiArray,'/thr',10)
         self.mon_pub = self.create_publisher(Float32MultiArray,'/monitor',10)
+        self.estop_pub = self.create_publisher(Int8, 'e_stop', 10)
 
        
 
@@ -91,8 +103,8 @@ class PID_node(Node):
         self.timeout = 15.0
 
         #Timers
-        #self.timer = self.create_timer(0.1,self.control_loop)
-        self.timer_2 = self.create_timer(0.1,self.check_key)
+        # self.timer = self.create_timer(0.1,self.control_loop)
+        # self.timer_2 = self.create_timer(0.1,self.check_key)
 
 
     #Check if keystroke should be deactivated and switch back to software
@@ -111,11 +123,24 @@ class PID_node(Node):
             self.lpid.reset()
             self.rpid.reset()
             thr = Float32MultiArray()
-            thr.data = [0.0, 0.0]
+            thr.data = [float(0),float(0)]
             self.thr_pub.publish(thr)
+
+            estop_msg = Int8()
+            estop_msg.data = 1
+            self.estop_pub.publish(estop_msg)
+            
             self.get_logger().info("Estop has been engaged")
+        
+        elif not self.estop:
+            self.lpid.reset()
+            self.rpid.reset()
 
+            estop_msg = Int8()
+            estop_msg.data = 0
+            self.estop_pub.publish(estop_msg)
 
+            self.get_logger().info("Estop has been disengaged")
 
        
     def cmd_callback(self,msg: Twist):
@@ -133,12 +158,13 @@ class PID_node(Node):
         
         self.left_enc = msg.data[0]
         self.right_enc = msg.data[1]
-        
+
+        self.control_loop()
         #Trigger PID compute only if counter limit is reached
-        self.counter += 1
-        if self.counter == self.counter_limit:
-            self.control_loop()
-            self.counter = 1
+        # self.counter += 1
+        # if self.counter == self.counter_limit:
+        #     self.control_loop()
+        #     self.counter = 1
 
     def keystroke_callback(self,msg :Float32MultiArray):
             if self.active !="keystroke":
@@ -159,24 +185,19 @@ class PID_node(Node):
         #Compute dt
         now = self.get_clock().now().nanoseconds/1e9
         dt = now - self.prev_time
-        if dt<= 0:
-            return
         self.prev_time = now
 
         if not self.estop:
 
-            left_thr = self.lpid.compute(self.left_enc,dt)
-            right_thr =self.rpid.compute(self.right_enc,dt)
+            left_thr  = self.lpid.compute(self.left_enc,dt)
+            right_thr = self.rpid.compute(self.right_enc,dt)
 
             msg = Float32MultiArray()
+
             msg.data = [float(left_thr), float(right_thr)]
             # msg.data[0]= left_thr
             # msg.data[1]= right_thr
-
             self.thr_pub.publish(msg)
- 
-
-            
 
             value = Float32MultiArray()
     

@@ -85,7 +85,6 @@ class key_board_node(Node):
         elif key == "e":
             e_stop_msg = Int8()
             e_stop_msg.data = 1
-            #msg.data = [0.0 , 0.0]
             self.e_stop_pub.publish(e_stop_msg)
 
 
@@ -95,10 +94,10 @@ class key_board_node(Node):
             self.e_stop_pub.publish(e_stop_msg)
 
         else:
+            self.get_logger().info("Error e-stop intialized")
             e_stop_msg = Int8()
-            e_stop_msg = 1
+            e_stop_msg.data = 1
             self.e_stop_pub.publish(e_stop_msg) 
-            self.get_logger().info(f"Unknown key pressed: {key}")
             return
         
         

@@ -4,17 +4,29 @@ from rclpy.node import Node
 from std_msgs.msg import Float32MultiArray
 from std_msgs.msg import Int8
 import sys,termios,tty,select
-
+#importing important Libraries
 class key_board_node(Node):
     
     def __init__(self):
         super().__init__("keyboard_control")
+        self.get_logger().info("Key controls")
+        self.get_logger().info("Press w to move forward [+10,+10]")
+        self.get_logger().info("Press s to move backwards [-10,-10]")
+        self.get_logger().info("Press a to move right [0,+10]")
+        self.get_logger().info("Press d to move left [+10,0]")
+        self.get_logger().info("Press z to reset to [0,0]")
+        self.get_logger().info("Press b to send [-10,0]")
+        self.get_logger().info("Press n to send [+10,-10]")
+        self.get_logger().info("Press m to send [0,-10]")
+        self.get_logger().info("Press j to send [-10,+10]")
+        self.get_logger().warn("Press esc to kill the node")
+        self.get_logger().warn("Press e to trigger e-stop and r to reset e-stop")
+        self.get_logger().warn("Pressing any other key will initiate e-stop")
         self.key_stroke = self.create_publisher(Float32MultiArray,"keystroke",10)
         self.settings = termios.tcgetattr(sys.stdin)
         self.timer = self.create_timer(0.1,self.key_loop)
         self.left_velocity = 0
         self.right_velocity = 0
-        #self.prev_key = "z"
         self.e_stop_pub = self.create_publisher(Int8, 'estop', 10)
         
     
@@ -82,12 +94,10 @@ class key_board_node(Node):
             e_stop_msg.data = 0
             self.e_stop_pub.publish(e_stop_msg)
 
-        elif key == "q":
-            self.get_logger().info("Quit key pressed. Shutting down...")
-            rclpy.shutdown()
-            
-            return
         else:
+            e_stop_msg = Int8()
+            e_stop_msg = 1
+            self.e_stop_pub.publish(e_stop_msg) 
             self.get_logger().info(f"Unknown key pressed: {key}")
             return
         

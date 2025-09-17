@@ -7,7 +7,7 @@ from enum import Enum
 from time import sleep
 
 class Kreo(Enum):
-    # Top Buttons
+    # Top Buttonsyh
     R1 = 311
     L1 = 310
 

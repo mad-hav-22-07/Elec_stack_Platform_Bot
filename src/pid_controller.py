@@ -43,10 +43,10 @@ class Compute_PID:
     def compute(self,enc,dt):
         self.error_prev = self.error
         self.error = self.setpoint - enc
-        if self.setpoint == 0:  
-            self.error_sum = 0
-        else:
-            self.error_sum += self.error
+        # if self.setpoint == 0:  
+        #     self.error_sum = 0
+        # else:
+        self.error_sum += self.error
 
         # max_error_sum = 200
         # self.error_sum = max(-max_error_sum,min(self.error_sum,max_error_sum))

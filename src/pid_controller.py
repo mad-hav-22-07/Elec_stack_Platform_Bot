@@ -66,8 +66,8 @@ class PID_node(Node):
 
         super().__init__ ('pid_control')
 
-        self.r = 0.124 #Wheel radius
-        self.l = 1.12  #Distance between wheels
+        self.r = 0.1016 #Wheel radius
+        self.l = 0.395  #Distance between wheels
 
         #Frequency scaling according to encoder serial frequency
         self.counter = 1
